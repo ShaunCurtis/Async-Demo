@@ -47,7 +47,7 @@ namespace Async_Demo
         public Task Start()
         {
             this.LogThreadType();
-            ChoresTask = DoMyChores();
+            this.ChoresTask = DoMyChores();
             return this.ChoresTask;
         }
 
@@ -80,13 +80,6 @@ namespace Async_Demo
 
         public async Task DoMyChores()
         {
-            var chores = this.DoMorningChores();
-            await chores;
-            this.WriteDirectToUI("Daydream of a proper job!");
-        }
-
-        public async Task DoMorningChores()
-        {
             var taskname = "Morning Chores";
 
             // await Task.Yield();
@@ -101,13 +94,13 @@ namespace Async_Demo
             await GoToTheShops();
             Task.WaitAll(new Task[] { doTheWashingChore, doHoovering });
             this.LogToUI("All done, feet up.", taskname);
+            this.WriteDirectToUI("Daydream of a proper job!");
         }
 
         public async Task HaveBreakfast()
         {
             var taskname = "Breakfast";
             var threadname = Thread.CurrentThread.Name;
-            var message = $"[{threadname}]>[{taskname}]";
             this.LogToUI($"In the fridge", taskname);
             this.LogToUI($"No eggs, so it's toast only.", taskname);
             ShoppingList.Add("Eggs");
@@ -122,8 +115,6 @@ namespace Async_Demo
         {
             var taskname = $"Washing Up";
             var threadname = Thread.CurrentThread.Name;
-            var message = $"[{threadname}]>[{taskname}]";
-            taskname = $"[{threadname}][{taskname}]";
             var task = new Task(async () =>
             {
                 ImBusy.SetBusy("Doing the Washing Up");
