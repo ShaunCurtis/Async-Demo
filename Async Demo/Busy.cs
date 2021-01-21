@@ -6,19 +6,20 @@ using System.Threading.Tasks;
 namespace Async_Demo
 {
 
-    public class Busy
+    public class Busy :UILogger
     {
         TaskCompletionSource<bool> taskCompletionSource = new TaskCompletionSource<bool>();
-
-        public void Finished()
+        public Busy(bool isbusy)
         {
-            if (string.IsNullOrWhiteSpace(Thread.CurrentThread.Name))
-                Thread.CurrentThread.Name = "Busy Thread";
+            taskCompletionSource = new TaskCompletionSource<bool>();
+            if (!isbusy) taskCompletionSource.SetResult(true);
+        }
+
+        public void SetIdle()
+        {
             var taskname = "Busy Task";
-            var threadname = Thread.CurrentThread.Name;
-            var message = $"[{threadname}]>[{taskname}]";
             taskCompletionSource.SetResult(true);
-            Console.WriteLine($"{message} > finished {Message}");
+            this.LogToUI($"finished {Message}",taskname);
         }
 
         public Task Task =>
@@ -32,19 +33,9 @@ namespace Async_Demo
         {
             Message = message ?? Message;
 
-            //if (string.IsNullOrWhiteSpace(Thread.CurrentThread.Name))
-            //    Thread.CurrentThread.Name = "Busy Thread";
             var taskname = "Busy Task";
-            var threadname = Thread.CurrentThread.Name;
-            var mess = $"[{threadname}]>[{taskname}]";
             taskCompletionSource = new TaskCompletionSource<bool>();
-            Console.WriteLine($"{mess} > Busy {Message}");
-        }
-
-        public Busy(bool isbusy)
-        {
-            taskCompletionSource = new TaskCompletionSource<bool>();
-            if (!isbusy) taskCompletionSource.SetResult(true);
+            this.LogToUI($"Busy {Message}", taskname);
         }
     }
 }

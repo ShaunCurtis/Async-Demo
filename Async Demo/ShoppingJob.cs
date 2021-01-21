@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace Async_Demo
 {
-    class ShoppingJob : IEnumerable
+    class ShoppingJob : UILogger, IEnumerable
     {
+
         public Task ShoppingTask
         {
             get
@@ -36,11 +37,11 @@ namespace Async_Demo
         {
             if (ShoppingTaskCompletionSource is null | ShoppingTaskCompletionSource.Task.IsCompleted)
             {
-                Console.WriteLine("  +++> Starting New Shopping List");
+                this.WriteDirectToUI("  +++> Starting New Shopping List");
                 ShoppingTaskCompletionSource = new TaskCompletionSource<bool>();
             }
             List.Add(item);
-            Console.WriteLine($"  ===> {item} added to Shopping List");
+            this.WriteDirectToUI($"  ===> {item} added to Shopping List");
 
         }
 
@@ -48,7 +49,7 @@ namespace Async_Demo
         {
             List.Clear();
             TripsToShop++;
-            Console.WriteLine($"  ===> Cleared Shopping List");
+            this.WriteDirectToUI($"  ===> Cleared Shopping List");
             ShoppingTaskCompletionSource.SetResult(true);
         }
 

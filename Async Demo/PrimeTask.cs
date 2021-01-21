@@ -6,12 +6,20 @@ using System.Threading.Tasks;
 
 namespace Async_Demo
 {
-    public class PrimeTask : ILongRunningTask
+    public class PrimeTask : UILogger, ILongRunningTask
     {
         Stopwatch watch = new Stopwatch();
 
+        public PrimeTask(Action<string> uiLogger) {
+            this.UIMessenger = uiLogger;
+            this.CallerName = "Activity Task";
+        }
+
+        private string Message = "Prime Task";
+
         public Task RunAsync(long num, string message)
         {
+            this.Message = message ?? this.Message;
             watch.Reset();
             watch.Start();
             var counter = 0;
@@ -32,12 +40,13 @@ namespace Async_Demo
                 }
             }
             watch.Stop();
-            Console.WriteLine($"[{Thread.CurrentThread.Name}] - {message}...({watch.ElapsedMilliseconds} millisecs)");
+            this.Log();
             return Task.CompletedTask;
         }
 
         public Task RunYieldingAsync(long num, string message)
         {
+            this.Message = message ?? this.Message;
             watch.Reset();
             watch.Start();
             var counter = 0;
@@ -59,12 +68,13 @@ namespace Async_Demo
                 }
             }
             watch.Stop();
-            Console.WriteLine($"[{Thread.CurrentThread.Name}] - {message}...({watch.ElapsedMilliseconds} millisecs)");
+            this.Log();
             return Task.CompletedTask;
         }
 
         public void Run(long num, string message)
         {
+            this.Message = message ?? this.Message;
             watch.Reset();
             watch.Start();
             var counter = 0;
@@ -85,8 +95,11 @@ namespace Async_Demo
                 }
             }
             watch.Stop();
-            Console.WriteLine($"[{Thread.CurrentThread.Name}] - {message}...({watch.ElapsedMilliseconds} millisecs)");
+            this.Log();
         }
+
+        private void Log() =>
+            this.LogToUI($"{Message} ==> Completed in ({watch.ElapsedMilliseconds} millisecs)");
     }
 }
 

@@ -6,9 +6,17 @@ using System.Threading.Tasks;
 
 namespace Async_Demo
 {
-    public class DelayTask : ILongRunningTask
+    public class DelayTask : UILogger, ILongRunningTask
     {
+
         Stopwatch watch = new Stopwatch();
+
+        public DelayTask(Action<string> uiLogger) {
+            this.UIMessenger = uiLogger;
+            this.CallerName = "Activity Task";
+        }
+
+        private string Message = "Prime Task";
 
         public async Task RunAsync(long num, string message)
         {
@@ -16,7 +24,7 @@ namespace Async_Demo
             watch.Start();
             await Task.Delay((int)num * 1000);
             watch.Stop();
-            Console.WriteLine($"[{Thread.CurrentThread.Name}] - {message}...{watch.ElapsedMilliseconds} millisecs");
+            this.Log();
         }
 
         public async Task RunYieldingAsync(long num, string message)
@@ -26,17 +34,23 @@ namespace Async_Demo
             await Task.Yield();
             await Task.Delay((int)num * 1000);
             watch.Stop();
-            Console.WriteLine($"[{Thread.CurrentThread.Name}] - {message}...{watch.ElapsedMilliseconds} millisecs");
+            this.Log();
         }
 
         public void Run(long num, string message)
         {
+            if (string.IsNullOrWhiteSpace(Thread.CurrentThread.Name))
+                Thread.CurrentThread.Name = "Long Running Task Thread";
             watch.Reset();
             watch.Start();
             Task.Delay((int)num * 1000);
             watch.Stop();
-            Console.WriteLine($"[{Thread.CurrentThread.Name}] - {message}...{watch.ElapsedMilliseconds} millisecs");
+            this.Log();
         }
+
+        private void Log() =>
+            this.LogToUI($"{Message} ==> Completed in ({watch.ElapsedMilliseconds} millisecs)");
+
     }
 }
 
