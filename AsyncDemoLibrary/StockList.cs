@@ -1,8 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿/// =================================
+/// Author: Shaun Curtis, Cold Elm
+/// License: MIT
+/// ==================================
 
-namespace Async_Demo
+namespace AsyncDemoLibrary
 {
     class StockList
     {

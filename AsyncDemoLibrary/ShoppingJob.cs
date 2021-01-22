@@ -1,10 +1,14 @@
-﻿using System;
+﻿using System;/// =================================
+/// Author: Shaun Curtis, Cold Elm
+/// License: MIT
+/// ==================================
+
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Async_Demo
+namespace AsyncDemoLibrary
 {
     class ShoppingJob : UILogger, IEnumerable
     {

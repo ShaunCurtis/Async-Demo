@@ -1,11 +1,16 @@
-﻿using System;
+﻿/// =================================
+/// Author: Shaun Curtis, Cold Elm
+/// License: MIT
+/// ==================================
+
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Async_Demo
+namespace AsyncDemoLibrary
 {
-    public class Chores : UILogger
+    public class MyChores : UILogger
     {
 
         StockList OurStocks = new StockList()
@@ -21,86 +26,71 @@ namespace Async_Demo
 
         private PhoneMessengerService Messenger;
 
-        private List<string> MyMessages = new List<string>();
+        private LongRunningTasks LongRunTask;
 
-        private Busy ImBusy = new Busy(false);
+        private UnemployedProgrammer Me;
 
-        private bool MessagesAlreadyWaiting = false;
-
-        private ILongRunningTask LongRunTask;
-
-        public Chores(PhoneMessengerService messenger, Action<string> uiLogger)
+        public MyChores(PhoneMessengerService messenger, Action<string> uiLogger)
         {
             this.CallerName = "Chores Task Master";
 
             this.UIMessenger = uiLogger;
             this.ShoppingList.UIMessenger = uiLogger;
-            this.ImBusy.UIMessenger = uiLogger;
+            this.Me = new UnemployedProgrammer(messenger, uiLogger);
 
-            LongRunTask = new PrimeTask(uiLogger);
+            LongRunTask = new LongRunningTasks(uiLogger);
 
             Messenger = messenger;
 
-            Messenger.PingMessage += OnMessageReceived;
         }
 
-        public Task Start()
+        public async Task Start(UnemployedProgrammer me)
         {
             this.LogThreadType();
-            this.ChoresTask = DoMyChores();
-            return this.ChoresTask;
+            this.Me = me;
+            var taskstorun = new List<Func<UnemployedProgrammer, Task>>();
+            taskstorun.Add(GoodMorning);
+            taskstorun.Add(HaveBreakfast);
+            taskstorun.Add(WashingUpChore);
+            taskstorun.Add(GoToTheShops);
+            this.Me.AddTaskstoList(taskstorun);
+            await me.Task;
+            //return Task.CompletedTask;
         }
 
-        public void OnMessageReceived(object sender, EventArgs e)
-        {
-            MyMessages.Add((string)sender);
-            this.LogToUI($"Ping! New message at {DateTime.Now.ToLongTimeString()}. You have {MyMessages.Count} unread messages.", "My Phone") ;
-            NotifyHaveMessages();
-        }
 
-        public async void NotifyHaveMessages()
-        {
-            if (!MessagesAlreadyWaiting)
-            {
-                MessagesAlreadyWaiting = true;
-                var taskname = "Messages";
-                await ImBusy.Task;
-                this.LogToUI($"Reading Messages");
-                var messages = new List<string>();
-                messages.AddRange(MyMessages);
-                MyMessages.Clear();
-                foreach (var message in messages)
-                {
-                    this.WriteDirectToUI($"{taskname} ==>> Message: {message}");
-                }
-                MessagesAlreadyWaiting = false;
-                this.LogToUI($"Phone back in pocket.");
-            }
-        }
 
-        public async Task DoMyChores()
-        {
-            var taskname = "Morning Chores";
+        //public task domychores()
+        //{
+        //    var taskname = "morning chores";
 
-            // await Task.Yield();
+        //    //// await task.yield();
+        //    //this.logtoui($"morning - what's on the agenda today!", taskname);
+        //    //this.logtoui("breakfast first", taskname);
+        //    ////var dowashingupchore = washingupchore(new task[] { });
+        //    //var dothewashingchore = thewashingchore(new task[] { });
+        //    //await gototheshops();
+        //    //await dowashingupchore;
+        //    //var dohoovering = hooveringchore(new task[] { dowashingupchore });
+        //    //await gototheshops();
+        //    //task.waitall(new task[] { dothewashingchore, dohoovering });
+        //    //this.logtoui("all done, feet up.", taskname);
+        //    //this.writedirecttoui("daydream of a proper job!");
+        //}
+
+        public Task GoodMorning(UnemployedProgrammer sucker)
+        {
+            var taskname = "Good Morning";
             this.LogToUI($"Morning - what's on the agenda today!", taskname);
             this.LogToUI("Breakfast first", taskname);
-            await HaveBreakfast();
-            var doWashingUpChore = WashingUpChore(new Task[] { });
-            var doTheWashingChore = TheWashingChore(new Task[] { });
-            await GoToTheShops();
-            await doWashingUpChore;
-            var doHoovering = HooveringChore(new Task[] { doWashingUpChore });
-            await GoToTheShops();
-            Task.WaitAll(new Task[] { doTheWashingChore, doHoovering });
-            this.LogToUI("All done, feet up.", taskname);
-            this.WriteDirectToUI("Daydream of a proper job!");
+            return Task.CompletedTask;
         }
 
-        public async Task HaveBreakfast()
+
+        public async Task HaveBreakfast(UnemployedProgrammer sucker)
         {
+            sucker.ImBusy();
             var taskname = "Breakfast";
-            var threadname = Thread.CurrentThread.Name;
             this.LogToUI($"In the fridge", taskname);
             this.LogToUI($"No eggs, so it's toast only.", taskname);
             ShoppingList.Add("Eggs");
@@ -109,17 +99,19 @@ namespace Async_Demo
             await LongRunTask.RunAsync(5, $"Eating");
             this.LogToUI($" ???? No Wine in fridge?", taskname);
             ShoppingList.Add("Wine");
+            sucker.ImIdle();
         }
 
-        public async Task WashingUpChore(Task[] awaitlist)
+        public async Task WashingUpChore(UnemployedProgrammer sucker)
         {
             var taskname = $"Washing Up";
             var threadname = Thread.CurrentThread.Name;
-            var task = new Task(async () =>
+            var completiontask = new Task(() =>
             {
-                ImBusy.SetBusy("Doing the Washing Up");
-                await LongRunTask.RunAsync(5, $"Washing up");
-                ImBusy.SetIdle();
+                sucker.ImBusy("Hands in the sink");
+                Task.Delay(5);
+                sucker.ImIdle("Hands in the sink");
+                this.LogToUI($"Washing Up Done", taskname);
             });
 
             this.LogToUI($"Check if I can do the washing up (any excuse will do!)",taskname);
@@ -130,8 +122,8 @@ namespace Async_Demo
                 this.LogToUI($"Can't continue till we have some washing Up Liquid!", taskname);
                 await ShoppingList.ShoppingTask;
             }
-            Task.WaitAll(awaitlist);
-            task.RunSynchronously();
+            this.LogToUI($"Back to the sink", taskname);
+            completiontask.RunSynchronously();
         }
 
         public async Task HooveringChore(Task[] awaitlist)
@@ -140,9 +132,9 @@ namespace Async_Demo
 
             var task = new Task(async () =>
             {
-                ImBusy.SetBusy("Hoovering");
+                //ImBusy.SetBusy("Hoovering");
                 await LongRunTask.RunAsync(10, $"Chained to the vacuum");
-                ImBusy.SetIdle();
+                //ImBusy.SetIdle();
             });
 
             this.LogToUI($"Get the machine out");
@@ -176,16 +168,13 @@ namespace Async_Demo
             Task.WaitAll(awaitlist);
             this.LogToUI($"Add the powder, Click the button and stand back", taskname);
             this.LogToUI($"washing...", taskname);
-            await Task.Delay(7 * 1000);
-            //await DoSomeWork(1000, $"{taskname} > Washing");
+            await LongRunTask.RunAsync(10, "Washing Machine running");
             this.LogToUI($"PING!! PING!!! Washing complete!", taskname);
         }
 
-        public async Task GoToTheShops()
+        public async Task GoToTheShops(UnemployedProgrammer sucker)
         {
             var taskname = "Shopping";
-            var threadname = Thread.CurrentThread.Name;
-            var message = $"[{threadname}]>[{taskname}]";
             var again = this.ShoppingList.TripsToShop == 0 ? "" : " again";
             if (ShoppingList.NeedToShop)
             {

@@ -1,26 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
+﻿/// =================================
+/// Author: Shaun Curtis, Cold Elm
+/// License: MIT
+/// ==================================
+
+using System;
 using System.Threading.Tasks;
 using System.Threading;
+using AsyncDemoLibrary;
 
 namespace Async_Demo
 {
     class Program
     {
 
-        static ILongRunningTask LongTask = new PrimeTask(LogToConsole);
+        static LongRunningTasks LongTask = new LongRunningTasks(LogToConsole);
 
         static void Main(string[] args)
         {
             LogThreadType();
 
-            // RunChores();
             var phonemessengerService = new PhoneMessengerService(LogToConsole);
-            var chores = new Chores(phonemessengerService, LogToConsole);
-            var chorestask = chores.Start();
-            //var chorestask = Task.Run(() => chores.Start());
-            chorestask.Wait();
-            // await chores.ChoresTask;
+            var phonemessengerServiceTask = Task.Run(() => phonemessengerService.Run());
+            var me = new UnemployedProgrammer(phonemessengerService, LogToConsole);
+            var chores = new MyChores(phonemessengerService, LogToConsole);
+            var chorestask = chores.Start(me);
         }
 
         protected static void LogThreadType(string caller = null)
@@ -53,21 +56,21 @@ namespace Async_Demo
         public static async Task TestYield()
         {
             Console.WriteLine($"[TestYield-1] Main running on thread: {Thread.CurrentThread.Name}");
-            var longtask = new DelayTask(LogToConsole);
+            var longtask = new LongRunningTasks(LogToConsole);
 //           var longtask = new PrimeTask();
             var task = longtask.RunYieldingAsync(5, "[TestYield-1]");
             //Console.WriteLine("Yielding");
             // await Task.Yield(LogToConsole);
             Console.WriteLine("[TestYield-1] Waiting");
             task.Wait();
-//            await task;
+            await Task.Yield();
             Console.WriteLine("Finished [TestYield-1]");
         }
 
         public static async Task TestYield2()
         {
             Console.WriteLine($"[TestYield2]Main running on thread: {Thread.CurrentThread.Name}");
-            var longtask = new DelayTask(LogToConsole);
+            var longtask = new LongRunningTasks(LogToConsole);
             //            var longtask = new PrimeTask(LogToConsole);
             var task = longtask.RunAsync(8, "[TestYield-2]");
             Console.WriteLine("Awaiting [TestYield-2]");
@@ -76,4 +79,3 @@ namespace Async_Demo
         }
     }
 }
-

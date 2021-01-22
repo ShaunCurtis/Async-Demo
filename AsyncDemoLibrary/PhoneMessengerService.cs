@@ -1,9 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
+﻿/// =================================
+/// Author: Shaun Curtis, Cold Elm
+/// License: MIT
+/// ==================================
+
+using System;
 using System.Threading.Tasks;
 
-namespace Async_Demo
+namespace AsyncDemoLibrary
 {
 
     public class PhoneMessengerService : UILogger
@@ -14,7 +17,7 @@ namespace Async_Demo
             set
             {
                 if (value && !_Live)
-                    this.MessengerTask = MessengeGenerator();
+                    this.MessengerTask = MessengerGenerator();
                 _Live = value;
             }
         }
@@ -23,24 +26,34 @@ namespace Async_Demo
 
         private bool _Live = true;
 
+        private LongRunningTasks LongRunTask;
+
         protected Task MessengerTask { get; set; }
 
         public PhoneMessengerService(Action<string> uiLogger)
         {
             this.UIMessenger = uiLogger;
             this.CallerName = "Messenger Service";
-            this.LogThreadType();
-            this.MessengerTask = MessengeGenerator();
+            LongRunTask = new LongRunningTasks(uiLogger);
         }
 
-        private async Task MessengeGenerator()
+        public Task Run()
+        {
+            this.LogThreadType(this.CallerName);
+            this.MessengerTask = MessengerGenerator();
+            return this.MessengerTask;
+        }
+
+        private async Task MessengerGenerator()
         {
             this.LogThreadType("Messenger");
-
+            var firsttrip = true;
             do
             {
                 await Task.Delay(3000);
+                if (firsttrip) this.LogThreadType();
                 PingMessage?.Invoke($"Hey, stuff going on at {DateTime.Now.ToLongTimeString()}!", EventArgs.Empty);
+                firsttrip = false;
             } while (_Live);
         }
     }

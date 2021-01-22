@@ -1,21 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
+﻿/// =================================
+/// Author: Shaun Curtis, Cold Elm
+/// License: MIT
+/// ==================================
+
+using System;
 using System.Diagnostics;
-using System.Threading;
 using System.Threading.Tasks;
 
-namespace Async_Demo
+namespace AsyncDemoLibrary
 {
-    public class PrimeTask : UILogger, ILongRunningTask
+    public class LongRunningTasks : UILogger
     {
         Stopwatch watch = new Stopwatch();
 
-        public PrimeTask(Action<string> uiLogger) {
+        public LongRunningTasks(Action<string> uiLogger) {
             this.UIMessenger = uiLogger;
-            this.CallerName = "Activity Task";
+            this.CallerName = "Long Running Tasks";
         }
 
-        private string Message = "Prime Task";
+        private string Message = "Long Running Tasks";
 
         public Task RunAsync(long num, string message)
         {
@@ -94,6 +97,15 @@ namespace Async_Demo
                     counter++;
                 }
             }
+            watch.Stop();
+            this.Log();
+        }
+
+        public async Task RunDelayAsync(long num, string message)
+        {
+            watch.Reset();
+            watch.Start();
+            await Task.Delay((int)num * 1000);
             watch.Stop();
             this.Log();
         }

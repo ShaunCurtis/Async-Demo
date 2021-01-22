@@ -1,9 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
+﻿/// =================================
+/// Author: Shaun Curtis, Cold Elm
+/// License: MIT
+/// ==================================
+
 using System.Threading.Tasks;
 
-namespace Async_Demo
+namespace AsyncDemoLibrary
 {
 
     public class Busy :UILogger
