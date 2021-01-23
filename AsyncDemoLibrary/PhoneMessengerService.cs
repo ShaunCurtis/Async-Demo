@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace AsyncDemoLibrary
 {
 
-    public class PhoneMessengerService : UILogger
+    public class PhoneMessengerService : BaseClass
     {
         public bool Live
         {
@@ -28,7 +28,6 @@ namespace AsyncDemoLibrary
 
         private bool Running = false;
 
-        private LongRunningTasks LongRunTask;
 
         protected Task MessengerTask { get; set; }
 
@@ -37,7 +36,6 @@ namespace AsyncDemoLibrary
             this.UIMessenger = uiLogger;
             this.CallerName = "Messenger Service";
             this.LogToUI("Messenger Service Created");
-            LongRunTask = new LongRunningTasks(uiLogger);
         }
 
         public Task Run()

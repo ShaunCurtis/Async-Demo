@@ -79,7 +79,7 @@ namespace AsyncDemoLibrary
             AllTasksCompletionSource.Task :
             Task.CompletedTask;
 
-        private string Message = "Doing Things";
+        private string Message { get; set; } = "On task";
 
         private List<Task> NormalJobs { get; } = new List<Task>();
 
@@ -87,138 +87,83 @@ namespace AsyncDemoLibrary
 
         private List<PersonalJob> _StackedJobs { get; } = new List<PersonalJob>();
 
-        public bool AddTasktoList(PersonalJob job, bool startnow = true)
+        public void AddTasktoList(PersonalJob job, bool startnow = true)
         {
             if (job != null)
                 this._StackedJobs.Add(job);
             if (!this.JobsRunning && startnow)
-                StartJobs();
-            return true;
+                LoadJobs();
         }
 
-        public bool AddTaskstoList(List<PersonalJob> jobs, bool startnow = true)
+        public void AddTaskstoList(List<PersonalJob> jobs)
         {
             foreach (var job in jobs)
-            {
                 this._StackedJobs.Add(job);
-            }
-            if (startnow)
-                StartJobs();
-            return true;
+                LoadJobs();
         }
 
         private TaskCompletionSource<bool> PriorityTasksCompletionSource = new TaskCompletionSource<bool>();
 
-        private bool PriorityJobRunnerActive;
-
-        private Task RunPriorityJobsAsync()
-        {
-            if (!this.PriorityJobRunnerActive)
-            {
-                // Don't stop processing till both job queues are empty
-
-                this.PriorityJobRunnerActive = true;
-                // While routine makes sure we haven't been assigned new Priority tasks that are still running while we were busy
-                while (PriorityJobs.Count > 0)
-                {
-                    Task.WaitAll(PriorityJobs.ToArray());
-                    this.ClearTaskList(PriorityJobs);
-                }
-                this.PriorityTasksCompletionSource.SetResult(true);
-            }
-            return Task.CompletedTask;
-        }
-
         private bool PriorityJobsRunning;
 
-        private Task PriorityJobsMonitorAsync()
+        public Task PriorityJobsMonitorAsync()
         {
             if (!this.PriorityJobsRunning)
             {
                 this.PriorityJobsRunning = true;
 
-                // While routine makes sure we haven't been assigned new Priority tasks that are still running while we were busy
-                while (PriorityJobs.Count > 0)
-                {
-                    Task.WaitAll(PriorityJobs.ToArray());
-                    this.ClearTaskList(PriorityJobs);
-                }
-                this.PriorityJobsRunning = false;
-                this.PriorityTasksCompletionSource.SetResult(true);
+                if (PriorityJobs.Count > 0)
+                    return Task.WhenAll(PriorityJobs.ToArray());
             }
             return Task.CompletedTask;
         }
-
 
         private TaskCompletionSource<bool> AllTasksCompletionSource = new TaskCompletionSource<bool>();
 
-        private bool NormalJobRunnerActive;
-
-        private Task RunNormalJobsAsync()
-        {
-            if (!this.NormalJobRunnerActive)
-            {
-
-                this.NormalJobRunnerActive = true;
-                // While routine makes sure we haven't been assigned new tasks that are still running while we were busy
-                while (NormalJobs.Count > 0)
-                {
-                    // We get a list of all jobs so we don't complete until all jobs have run to completion
-                    var jobs = new List<Task>();
-                    {
-                        jobs.AddRange(this.PriorityJobs);
-                        jobs.AddRange(this.NormalJobs);
-                    }
-                    Task.WaitAll(jobs.ToArray());
-                    this.ClearTaskList(NormalJobs);
-                }
-                this.AllTasksCompletionSource.SetResult(true);
-                this.NormalJobRunnerActive = false;
-            }
-            return Task.CompletedTask;
-        }
-
         private bool JobsRunning;
 
-        private Task MonitorAllJobsAsync()
+        public Task AllJobsMonitorAsync()
         {
             if (!this.JobsRunning)
             {
                 this.JobsRunning = true;
 
-                if (this.PriorityJobs.Count > 0 && !this.PriorityTasks.IsCompleted) this.PriorityJobsMonitorAsync();
-
-                // While routine makes sure we haven't been assigned new tasks that are still running while we were busy
-                while (NormalJobs.Count > 0)
-                {
-                    // We get a list of all jobs so we don't complete until all jobs have run to completion
                     var jobs = new List<Task>();
                     {
                         jobs.AddRange(this.PriorityJobs);
                         jobs.AddRange(this.NormalJobs);
                     }
-                    Task.WaitAll(jobs.ToArray());
-
-                    // Clear out all the finished jobs
-                    this.ClearTaskList(NormalJobs);
-
-                    // If new priority jobs have been loaded while we are still running normal jobs restart the PriorityJobMonitor
-                    if (this.PriorityJobs.Count > 0 && !this.PriorityTasks.IsCompleted) this.PriorityJobsMonitorAsync();
-                }
-                this.AllTasksCompletionSource.SetResult(true);
-                this.NormalJobRunnerActive = false;
+                    return Task.WhenAll(jobs.ToArray());
             }
             return Task.CompletedTask;
         }
 
-        private void ClearTaskList(List<Task> tasks)
+        public void ClearPriorityTaskList()
         {
-            var removelist = tasks.Where(item => item.IsCompleted).ToList();
-            removelist.ForEach(item => tasks.Remove(item));
+            var removelist = this.PriorityJobs.Where(item => item.IsCompleted).ToList();
+            removelist.ForEach(item => this.PriorityJobs.Remove(item));
+            if (this.PriorityJobs.Count == 0)
+            {
+                this.PriorityJobsRunning = false;
+                this.PriorityTasksCompletionSource.SetResult(true);
+            }
         }
 
-        private void StartJobs()
+        public void ClearAllTaskLists()
         {
+            this.ClearPriorityTaskList();
+            var removelist = this.NormalJobs.Where(item => item.IsCompleted).ToList();
+            removelist.ForEach(item => this.NormalJobs.Remove(item));
+            if (this.NormalJobs.Count == 0)
+            {
+                this.JobsRunning = false;
+                this.AllTasksCompletionSource.SetResult(true);
+            }
+        }
+
+        private void LoadJobs()
+        {
+            ClearAllTaskLists();
             if (_StackedJobs.Count > 0)
             {
                 foreach (var job in _StackedJobs)
@@ -239,8 +184,6 @@ namespace AsyncDemoLibrary
                     }
                 }
                 _StackedJobs.Clear();
-                if (this.PriorityJobs.Count > 0 && !this.PriorityTasks.IsCompleted) this.MonitorAllJobsAsync();
-                if (this.NormalJobs.Count > 0 && !this.AllTasks.IsCompleted) this.MonitorAllJobsAsync();
             }
         }
 
@@ -284,41 +227,25 @@ namespace AsyncDemoLibrary
 
         public void ImBusy(string message = null)
         {
-            if (!string.IsNullOrWhiteSpace(message)) this.LogToUI($" I'm Busy >  {Message}");
+            message = message ?? Message;
+            if (!string.IsNullOrWhiteSpace(message)) this.LogToUI($" I'm Busy > {message}");
             this.State = StateType.Busy;
         }
 
         public void ImIdle(string message = null)
         {
-            if (!string.IsNullOrWhiteSpace(message)) this.LogToUI($"I'm Idle > {Message}");
+            message = message ?? Message;
+            if (!string.IsNullOrWhiteSpace(message)) this.LogToUI($"I'm Idle > {message}");
             this.State = StateType.Idle;
         }
 
         public void ImMultitasking(string message = null)
         {
-            if (!string.IsNullOrWhiteSpace(message)) this.LogToUI($"I'm multitasking > {Message}");
+            message = message ?? Message;
+            if (!string.IsNullOrWhiteSpace(message)) this.LogToUI($"I'm multitasking > {message}");
             this.State = StateType.Multitasking;
         }
 
-/// <summary>
-/// Public Method to change State
-/// </summary>
-/// <param name="state"></param>
-/// <param name="message"></param>
-        public void ChangeState(StateType state, string message = null)
-        {
-            if (state != this.State)
-            {
-                if (!string.IsNullOrWhiteSpace(message)) this.LogToUI($"I'm {state.ToString()} > {Message}");
-                this.State = state;
-            }
-        }
-
-        /// <summary>
-        /// Event trigger when stats is changed
-        /// </summary>
-        /// <param name="oldstate"></param>
-        /// <param name="newstate"></param>
         private void StateChanged(StateType oldstate, StateType newstate)
         {
             if (oldstate == StateType.Busy && newstate != StateType.Busy)

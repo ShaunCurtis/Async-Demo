@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace AsyncDemoLibrary
 {
-    class ShoppingJob : UILogger, IEnumerable
+    class ShoppingJob : BaseClass, IEnumerable
     {
 
         public Task ShoppingTask

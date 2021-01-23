@@ -26,19 +26,16 @@ namespace AsyncDemoLibrary
 
         private PhoneMessengerService Messenger;
 
-        private LongRunningTasks LongRunTask;
-
         private UnemployedProgrammer Me;
 
-        public MyChores(UnemployedProgrammer sucker, PhoneMessengerService messenger, Action<string> uiLogger)
+        public MyChores(UnemployedProgrammer person, PhoneMessengerService messenger, Action<string> uiLogger)
         {
             this.CallerName = "Chores Task Master";
 
             this.UIMessenger = uiLogger;
             this.ShoppingList.UIMessenger = uiLogger;
-            this.Me = sucker;
 
-            LongRunTask = new LongRunningTasks(uiLogger);
+            this.Me = person;
 
             Messenger = messenger;
 
@@ -46,6 +43,7 @@ namespace AsyncDemoLibrary
 
         public async Task Start(UnemployedProgrammer me)
         {
+            var taskname = "Run Chores";
             this.LogThreadType();
             this.Me = me;
             var taskstorun = new List<PersonalJob>();
@@ -57,72 +55,54 @@ namespace AsyncDemoLibrary
                 taskstorun.Add(new PersonalJob() { Job = GoToTheShops, Priority = PriorityType.MustCompleteNow });
             }
             this.Me.AddTaskstoList(taskstorun);
-            await me.PriorityTasks;
+            await me.PriorityJobsMonitorAsync();
             taskstorun.Clear();
             {
                 taskstorun.Add(new PersonalJob() { Job = HooveringChore, Priority = PriorityType.MustCompleteNow });
                 taskstorun.Add(new PersonalJob() { Job = GoToTheShops, Priority = PriorityType.MustCompleteNow });
             }
             this.Me.AddTaskstoList(taskstorun);
-            await me.AllTasks;
-            //return Task.CompletedTask;
+            await me.AllJobsMonitorAsync();
+            this.LogToUI("all done, feet up.", taskname);
+            this.WriteDirectToUI("daydream of a proper job!");
         }
 
-
-
-        //public task domychores()
-        //{
-        //    var taskname = "morning chores";
-
-        //    //// await task.yield();
-        //    //this.logtoui($"morning - what's on the agenda today!", taskname);
-        //    //this.logtoui("breakfast first", taskname);
-        //    ////var dowashingupchore = washingupchore(new task[] { });
-        //    //var dothewashingchore = thewashingchore(new task[] { });
-        //    //await gototheshops();
-        //    //await dowashingupchore;
-        //    //var dohoovering = hooveringchore(new task[] { dowashingupchore });
-        //    //await gototheshops();
-        //    //task.waitall(new task[] { dothewashingchore, dohoovering });
-        //    //this.logtoui("all done, feet up.", taskname);
-        //    //this.writedirecttoui("daydream of a proper job!");
-        //}
-
-        public Task GoodMorning(UnemployedProgrammer sucker)
+        public Task GoodMorning(UnemployedProgrammer person)
         {
-            sucker.ImMultitasking();
+            person.ImMultitasking();
             var taskname = "Good Morning";
             this.LogToUI($"Morning - what's on the agenda today!", taskname);
             this.LogToUI("Breakfast first", taskname);
-            sucker.ImIdle();
+            person.ImIdle();
+            person.ClearAllTaskLists();
             return Task.CompletedTask;
         }
 
 
-        public async Task HaveBreakfast(UnemployedProgrammer sucker)
+        public async Task HaveBreakfast(UnemployedProgrammer person)
         {
-            sucker.ImMultitasking();
+            person.ImMultitasking();
             var taskname = "Breakfast";
             this.LogToUI($"In the fridge", taskname);
             this.LogToUI($"No eggs, so it's toast only.", taskname);
             ShoppingList.Add("Eggs");
             this.LogToUI($"Last two pieces of bread used up", taskname);
             ShoppingList.Add("Bread");
-            await LongRunTask.RunAsync(5, $"Eating");
+            await this.RunLongDelayTaskAsync(5, $"Eating");
             this.LogToUI($" ???? No Wine in fridge?", taskname);
             ShoppingList.Add("Wine");
-            sucker.ImIdle();
+            person.ImIdle();
         }
 
-        public async Task WashingUpChore(UnemployedProgrammer sucker)
+        public async Task WashingUpChore(UnemployedProgrammer person)
         {
             var taskname = $"Washing Up";
             var threadname = Thread.CurrentThread.Name;
             var completiontask = new Task(() =>
             {
-                sucker.ImBusy("Hands in the sink");
+                person.ImBusy("Hands in the sink");
                 Task.Delay(5);
-                sucker.ImBusy("rubbers off");
+                person.ImBusy("rubbers off");
                 this.LogToUI($"Washing Up Done", taskname);
             });
 
@@ -138,15 +118,15 @@ namespace AsyncDemoLibrary
             completiontask.RunSynchronously();
         }
 
-        public async Task HooveringChore(UnemployedProgrammer sucker)
+        public async Task HooveringChore(UnemployedProgrammer person)
         {
             var taskname = "Hoovering";
 
             var task = new Task(async () =>
             {
-                sucker.ImBusy("Chained to the vacuum");
-                await LongRunTask.RunAsync(5, $"Chained to the vacuum");
-                sucker.ImIdle("unchained");
+                person.ImBusy("Chained to the vacuum");
+                await this.RunLongDelayTaskAsync(5, $"Chained to the vacuum");
+                person.ImIdle("unchained from vacuum");
             });
 
             this.LogToUI($"Get the machine out");
@@ -155,14 +135,14 @@ namespace AsyncDemoLibrary
                 this.LogToUI($"No bags!",taskname);
                 ShoppingList.Add($"Hoover Bags");
                 this.LogToUI($"Can't continue till we have some bags!", taskname);
-                await ShoppingList.ShoppingTask;
+                 await ShoppingList.ShoppingTask;
             }
             else
-                this.LogToUI($"Thank god there's bags, I've already done the shopping once!", taskname);
+                this.LogToUI($"Thank goodness there's bags, I've already done the shopping once!", taskname);
             task.RunSynchronously();
         }
 
-        public async Task TheWashingChore(UnemployedProgrammer sucker)
+        public async Task TheWashingChore(UnemployedProgrammer person)
         {
             var taskname = "Clothes Washing";
             var threadname = Thread.CurrentThread.Name;
@@ -178,31 +158,32 @@ namespace AsyncDemoLibrary
             }
             this.LogToUI($"Add the powder, Click the button and stand back", taskname);
             this.LogToUI($"washing...", taskname);
-            await this.RunLongTaskAsync(14, "Washing Machine running");
+            // await Task.Yield();
+            await this.RunLongDelayTaskAsync(14, "Washing Machine running");
             this.LogToUI($"PING!! PING!!! Washing complete!", taskname);
-            await sucker.DoNotDisturbTask;
+            await person.DoNotDisturbTask;
             this.LogToUI($"Emptying machine", taskname);
-            sucker.ImBusy();
-            await this.RunLongTaskAsync(6, "Putting Washing Away");
-            sucker.ImIdle();
+            person.ImBusy();
+            await this.RunLongDelayTaskAsync(3, "Putting Washing Away");
+            person.ImIdle();
         }
 
-        public async Task GoToTheShops(UnemployedProgrammer sucker)
+        public async Task GoToTheShops(UnemployedProgrammer person)
         {
             var taskname = "Shopping";
             var again = this.ShoppingList.TripsToShop == 0 ? "" : " again";
             if (ShoppingList.NeedToShop)
             {
-                sucker.ImMultitasking();
-                await LongRunTask.RunAsync(4, $"Heading out to the shops{again}");
+                person.ImMultitasking();
+                await this.RunLongDelayTaskAsync(4, $"Heading out to the shops{again}");
                 foreach (var item in ShoppingList)
                 {
-                    await LongRunTask.RunAsync(1, $"Getting {item}");
+                    await this.RunLongDelayTaskAsync(1, $"Getting {item}");
                 }
-                await LongRunTask.RunAsync(1, $"Heading home");
+                await this.RunLongDelayTaskAsync(1, $"Heading home");
                 this.LogToUI($"Back Home. Shopping done.", taskname);
                 ShoppingList.ShoppingDone();
-                sucker.ImIdle();
+                person.ImIdle();
             }
         }
     }

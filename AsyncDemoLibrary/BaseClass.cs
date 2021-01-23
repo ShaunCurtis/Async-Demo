@@ -15,9 +15,9 @@ namespace AsyncDemoLibrary
 
         protected void LogToUI(string message, string caller = null)
         {
+            caller ??= this.CallerName;
             if (string.IsNullOrWhiteSpace(Thread.CurrentThread.Name))
                 Thread.CurrentThread.Name = $"{caller} Thread";
-            caller ??= this.CallerName;
             message = $"[{Thread.CurrentThread.Name}][{caller}] > {message}";
             UIMessenger?.Invoke(message);
         }
