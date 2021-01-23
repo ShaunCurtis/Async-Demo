@@ -22,7 +22,7 @@ namespace Async_Demo
             var phonemessengerService = new PhoneMessengerService(LogToConsole);
             var phonemessengerServiceTask = Task.Run(() => phonemessengerService.Run());
             var me = new UnemployedProgrammer(phonemessengerService, LogToConsole);
-            var chores = new MyChores(phonemessengerService, LogToConsole);
+            var chores = new MyChores(me, phonemessengerService, LogToConsole);
             var chorestask = chores.Start(me);
         }
 

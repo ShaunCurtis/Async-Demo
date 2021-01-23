@@ -26,6 +26,8 @@ namespace AsyncDemoLibrary
 
         private bool _Live = true;
 
+        private bool Running = false;
+
         private LongRunningTasks LongRunTask;
 
         protected Task MessengerTask { get; set; }
@@ -34,27 +36,36 @@ namespace AsyncDemoLibrary
         {
             this.UIMessenger = uiLogger;
             this.CallerName = "Messenger Service";
+            this.LogToUI("Messenger Service Created");
             LongRunTask = new LongRunningTasks(uiLogger);
         }
 
         public Task Run()
         {
             this.LogThreadType(this.CallerName);
+            this.LogToUI("Messenger Service Running");
             this.MessengerTask = MessengerGenerator();
             return this.MessengerTask;
         }
 
         private async Task MessengerGenerator()
         {
-            this.LogThreadType("Messenger");
-            var firsttrip = true;
-            do
+            if (!Running)
             {
-                await Task.Delay(3000);
-                if (firsttrip) this.LogThreadType();
-                PingMessage?.Invoke($"Hey, stuff going on at {DateTime.Now.ToLongTimeString()}!", EventArgs.Empty);
-                firsttrip = false;
-            } while (_Live);
+                this.Running = true;
+                this.LogThreadType("Messenger");
+                var firsttrip = true;
+                do
+                {
+                    await Task.Delay(3000);
+                    if (firsttrip) this.LogThreadType();
+                    var subscriberscount = PingMessage.GetInvocationList()?.Length ?? 0;
+                    var subscribers = PingMessage.GetInvocationList();
+                    PingMessage?.Invoke($"Hey, stuff going on at {DateTime.Now.ToLongTimeString()}!", EventArgs.Empty);
+                    firsttrip = false;
+                } while (_Live);
+                this.Running = false;
+            }
         }
     }
 }

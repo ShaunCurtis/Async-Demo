@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace AsyncDemoLibrary
 {
-    public class MyChores : UILogger
+    public class MyChores : BaseClass
     {
 
         StockList OurStocks = new StockList()
@@ -30,13 +30,13 @@ namespace AsyncDemoLibrary
 
         private UnemployedProgrammer Me;
 
-        public MyChores(PhoneMessengerService messenger, Action<string> uiLogger)
+        public MyChores(UnemployedProgrammer sucker, PhoneMessengerService messenger, Action<string> uiLogger)
         {
             this.CallerName = "Chores Task Master";
 
             this.UIMessenger = uiLogger;
             this.ShoppingList.UIMessenger = uiLogger;
-            this.Me = new UnemployedProgrammer(messenger, uiLogger);
+            this.Me = sucker;
 
             LongRunTask = new LongRunningTasks(uiLogger);
 
@@ -48,13 +48,23 @@ namespace AsyncDemoLibrary
         {
             this.LogThreadType();
             this.Me = me;
-            var taskstorun = new List<Func<UnemployedProgrammer, Task>>();
-            taskstorun.Add(GoodMorning);
-            taskstorun.Add(HaveBreakfast);
-            taskstorun.Add(WashingUpChore);
-            taskstorun.Add(GoToTheShops);
+            var taskstorun = new List<PersonalJob>();
+            {
+                taskstorun.Add(new PersonalJob() { Job = GoodMorning, Priority = PriorityType.MustCompleteNow });
+                taskstorun.Add(new PersonalJob() { Job = HaveBreakfast, Priority = PriorityType.MustCompleteNow });
+                taskstorun.Add(new PersonalJob() { Job = WashingUpChore, Priority = PriorityType.MustCompleteNow });
+                taskstorun.Add(new PersonalJob() { Job = TheWashingChore, Priority = PriorityType.Normal});
+                taskstorun.Add(new PersonalJob() { Job = GoToTheShops, Priority = PriorityType.MustCompleteNow });
+            }
             this.Me.AddTaskstoList(taskstorun);
-            await me.Task;
+            await me.PriorityTasks;
+            taskstorun.Clear();
+            {
+                taskstorun.Add(new PersonalJob() { Job = HooveringChore, Priority = PriorityType.MustCompleteNow });
+                taskstorun.Add(new PersonalJob() { Job = GoToTheShops, Priority = PriorityType.MustCompleteNow });
+            }
+            this.Me.AddTaskstoList(taskstorun);
+            await me.AllTasks;
             //return Task.CompletedTask;
         }
 
@@ -80,16 +90,18 @@ namespace AsyncDemoLibrary
 
         public Task GoodMorning(UnemployedProgrammer sucker)
         {
+            sucker.ImMultitasking();
             var taskname = "Good Morning";
             this.LogToUI($"Morning - what's on the agenda today!", taskname);
             this.LogToUI("Breakfast first", taskname);
+            sucker.ImIdle();
             return Task.CompletedTask;
         }
 
 
         public async Task HaveBreakfast(UnemployedProgrammer sucker)
         {
-            sucker.ImBusy();
+            sucker.ImMultitasking();
             var taskname = "Breakfast";
             this.LogToUI($"In the fridge", taskname);
             this.LogToUI($"No eggs, so it's toast only.", taskname);
@@ -110,7 +122,7 @@ namespace AsyncDemoLibrary
             {
                 sucker.ImBusy("Hands in the sink");
                 Task.Delay(5);
-                sucker.ImIdle("Hands in the sink");
+                sucker.ImBusy("rubbers off");
                 this.LogToUI($"Washing Up Done", taskname);
             });
 
@@ -126,15 +138,15 @@ namespace AsyncDemoLibrary
             completiontask.RunSynchronously();
         }
 
-        public async Task HooveringChore(Task[] awaitlist)
+        public async Task HooveringChore(UnemployedProgrammer sucker)
         {
             var taskname = "Hoovering";
 
             var task = new Task(async () =>
             {
-                //ImBusy.SetBusy("Hoovering");
-                await LongRunTask.RunAsync(10, $"Chained to the vacuum");
-                //ImBusy.SetIdle();
+                sucker.ImBusy("Chained to the vacuum");
+                await LongRunTask.RunAsync(5, $"Chained to the vacuum");
+                sucker.ImIdle("unchained");
             });
 
             this.LogToUI($"Get the machine out");
@@ -147,11 +159,10 @@ namespace AsyncDemoLibrary
             }
             else
                 this.LogToUI($"Thank god there's bags, I've already done the shopping once!", taskname);
-            Task.WaitAll(awaitlist);
             task.RunSynchronously();
         }
 
-        public async Task TheWashingChore(Task[] awaitlist)
+        public async Task TheWashingChore(UnemployedProgrammer sucker)
         {
             var taskname = "Clothes Washing";
             var threadname = Thread.CurrentThread.Name;
@@ -165,11 +176,15 @@ namespace AsyncDemoLibrary
                 this.LogToUI($"Can't continue till we have some powder!", taskname);
                 await ShoppingList.ShoppingTask;
             }
-            Task.WaitAll(awaitlist);
             this.LogToUI($"Add the powder, Click the button and stand back", taskname);
             this.LogToUI($"washing...", taskname);
-            await LongRunTask.RunAsync(10, "Washing Machine running");
+            await this.RunLongTaskAsync(14, "Washing Machine running");
             this.LogToUI($"PING!! PING!!! Washing complete!", taskname);
+            await sucker.DoNotDisturbTask;
+            this.LogToUI($"Emptying machine", taskname);
+            sucker.ImBusy();
+            await this.RunLongTaskAsync(6, "Putting Washing Away");
+            sucker.ImIdle();
         }
 
         public async Task GoToTheShops(UnemployedProgrammer sucker)
@@ -178,6 +193,7 @@ namespace AsyncDemoLibrary
             var again = this.ShoppingList.TripsToShop == 0 ? "" : " again";
             if (ShoppingList.NeedToShop)
             {
+                sucker.ImMultitasking();
                 await LongRunTask.RunAsync(4, $"Heading out to the shops{again}");
                 foreach (var item in ShoppingList)
                 {
@@ -186,6 +202,7 @@ namespace AsyncDemoLibrary
                 await LongRunTask.RunAsync(1, $"Heading home");
                 this.LogToUI($"Back Home. Shopping done.", taskname);
                 ShoppingList.ShoppingDone();
+                sucker.ImIdle();
             }
         }
     }
