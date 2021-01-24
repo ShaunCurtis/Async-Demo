@@ -13,7 +13,7 @@ namespace AsyncDemoLibrary
 
         protected Stopwatch watch = new Stopwatch();
 
-        protected void LogToUI(string message, string caller = null)
+        public void LogToUI(string message, string caller = null)
         {
             caller ??= this.CallerName;
             if (string.IsNullOrWhiteSpace(Thread.CurrentThread.Name))
@@ -22,10 +22,10 @@ namespace AsyncDemoLibrary
             UIMessenger?.Invoke(message);
         }
 
-        protected void WriteDirectToUI(string message) =>
+        public void WriteDirectToUI(string message) =>
             UIMessenger?.Invoke(message);
 
-        protected void LogThreadType(string caller = null)
+        public void LogThreadType(string caller = null)
         {
             caller ??= this.CallerName;
             var threadname = Thread.CurrentThread.IsThreadPoolThread ? "Threadpool Thread" : "Application Thread";
@@ -34,7 +34,7 @@ namespace AsyncDemoLibrary
 
         private string Message = "Long Running Tasks";
 
-        protected Task RunLongTaskAsync(long num, string message)
+        public Task RunLongTaskAsync(long num, string message)
         {
             this.Message = message ?? this.Message;
             watch.Reset();
@@ -61,35 +61,7 @@ namespace AsyncDemoLibrary
             return Task.CompletedTask;
         }
 
-        protected Task RunYieldingLongTaskAsync(long num, string message)
-        {
-            this.Message = message ?? this.Message;
-            watch.Reset();
-            watch.Start();
-            var counter = 0;
-            for (long i = 0; i <= (num * 10000); i++)
-            {
-                bool isPrime = true;
-                for (long j = 2; j < i; j++)
-                {
-                    if (i % j == 0)
-                    {
-                        isPrime = false;
-                        break;
-                    }
-                }
-                if (isPrime)
-                {
-                    counter++;
-                    Task.Yield();
-                }
-            }
-            watch.Stop();
-            this.Log();
-            return Task.CompletedTask;
-        }
-
-        protected void RunLongTask(long num, string message)
+        public void RunLongTask(long num, string message)
         {
             this.Message = message ?? this.Message;
             watch.Reset();
@@ -115,8 +87,9 @@ namespace AsyncDemoLibrary
             this.Log();
         }
 
-        protected async Task RunLongDelayTaskAsync(long num, string message)
+        public async Task RunLongDelayTaskAsync(long num, string message)
         {
+            this.Message = message ?? this.Message;
             watch.Reset();
             watch.Start();
             await Task.Delay((int)num * 1000);

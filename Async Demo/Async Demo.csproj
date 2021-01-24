@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5</TargetFramework>
+    <LangVersion>latest</LangVersion>
     <RootNamespace>Async_Demo</RootNamespace>
   </PropertyGroup>
 

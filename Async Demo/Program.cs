@@ -13,14 +13,29 @@ namespace Async_Demo
     class Program
     {
 
-        static void Main(string[] args)
+        //static void Main(string[] args)
+        //{
+        //    LogThreadType();
+        //    var phonemessengerService = new PhoneMessengerService(LogToConsole);
+        //    var phonemessengerServiceTask = Task.Run(() => phonemessengerService.Run());
+        //    var me = new UnemployedProgrammer(phonemessengerService, LogToConsole);
+        //    var chores = new MyChores(me, phonemessengerService, LogToConsole);
+        //    // var chorestask = Task.Run(() => chores.Start(me)); 
+        //    var chorestask = chores.Start(me);
+        //    chorestask.Wait();
+        //}
+
+        static async Task Main(string[] args)
         {
             LogThreadType();
             var phonemessengerService = new PhoneMessengerService(LogToConsole);
             var phonemessengerServiceTask = Task.Run(() => phonemessengerService.Run());
             var me = new UnemployedProgrammer(phonemessengerService, LogToConsole);
-            var chores = new MyChores(me, phonemessengerService, LogToConsole);
+            var chores = new JobScheduler(me, LogToConsole);
             var chorestask = chores.Start(me);
+            // var chorestask = Task.Run(() => chores.Start(me)); 
+            // chorestask.Wait();
+            await chorestask;
         }
 
         protected static void LogThreadType(string caller = null)
