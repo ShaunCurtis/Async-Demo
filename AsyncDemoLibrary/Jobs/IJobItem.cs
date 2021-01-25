@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 
 namespace AsyncDemoLibrary
 {
@@ -9,7 +10,13 @@ namespace AsyncDemoLibrary
 
         public Task JobTask { get; }
 
-        public Task Run(UnemployedProgrammer person);
+        public JobStatusType JobStatus { get; }
+
+        public int SequenceNo { get; }
+
+        public Action<bool> JobClosedAction { get; set; }
+
+        public void RunJob(UnemployedProgrammer person, int sequenceno);
 
     }
 }

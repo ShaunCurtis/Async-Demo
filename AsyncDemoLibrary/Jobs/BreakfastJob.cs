@@ -2,29 +2,30 @@
 
 namespace AsyncDemoLibrary
 {
-    class BreakfastJob 
+    class BreakfastJob : JobItem
     {
-        public PriorityType Priority { get; set; }
+        public BreakfastJob(PriorityType ptype) : base(ptype)
+        {
+            this.JobName = "Breakfast";
+        }
 
-        //public Task JobTask => JobTaskSource == null ? Task.CompletedTask: this.JobTaskSource.Task ;
-
-        //private TaskCompletionSource JobTaskSource { get; set; }
-
-        //public async Task Run(UnemployedProgrammer person)
-        //{
-        //    person.ImMultitasking();
-        //    var taskTitle = "Breakfast";
-        //    person.LogToUI($"In the fridge", taskTitle);
-        //    person.LogToUI($"No eggs, so it's toast only.", taskTitle);
-        //    person.ShoppingList.Add("Eggs");
-        //    person.LogToUI($"Last two pieces of bread used up", taskTitle);
-        //    person.ShoppingList.Add("Bread");
-        //    person.ImBusy();
-        //    await person.RunLongDelayTaskAsync(5, $"Eating").ContinueWith;
-        //    person.LogToUI($" ???? No Wine in fridge?", taskTitle);
-        //    person.ShoppingList.Add("Wine");
-        //    person.ImIdle();
-        //}
+        protected override async Task Run()
+        {
+            await this.CheckForIdle(this.Person);
+            this.JobStatus = JobStatusType.Running;
+            this.Person.ImMultitasking();
+            if (!this.JobStartedTask.IsCompleted) this.JobStartedTaskController.SetResult();
+            this.Person.LogToUI($"In the fridge", this.JobName);
+            this.Person.LogToUI($"No eggs, so it's toast only.", this.JobName);
+            this.Person.ShoppingList.Add("Eggs");
+            this.Person.LogToUI($"Last two pieces of bread used up", this.JobName);
+            this.Person.ShoppingList.Add("Bread");
+            this.Person.ImBusy(this.JobName);
+            await this.Person.RunLongDelayTaskAsync(5, $"Eating");
+            this.Person.LogToUI($" ???? No Wine in fridge?", this.JobName);
+            this.Person.ShoppingList.Add("Wine");
+            this.Person.ImIdle(this.JobName);
+        }
 
     }
 }

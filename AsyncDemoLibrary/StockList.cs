@@ -5,7 +5,7 @@
 
 namespace AsyncDemoLibrary
 {
-    class StockList
+    public class StockList
     {
         public int HooverBags { get; set; }
         public int WashingUpLiquid { get; set; }

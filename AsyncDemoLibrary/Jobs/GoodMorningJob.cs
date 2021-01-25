@@ -2,22 +2,22 @@
 
 namespace AsyncDemoLibrary
 {
-    class GoodMorningJob : IJobItem
+    class GoodMorningJob : JobItem
     {
-        public PriorityType Priority { get; set; }
 
-        public Task JobTask => JobTaskSource == null ? Task.CompletedTask: this.JobTaskSource.Task ;
+        public GoodMorningJob(PriorityType ptype) : base(ptype) {
+            this.JobName = "Good Morning";
+        }
 
-        private TaskCompletionSource JobTaskSource { get; set; }
-
-        public Task Run(UnemployedProgrammer person)
+        protected async override Task Run()
         {
-            person.ImMultitasking();
-            var taskTitle = "Good Morning";
-            person.LogToUI($"Morning - what's on the agenda today!", taskTitle);
-            person.LogToUI("Breakfast first", taskTitle);
-            person.ImIdle();
-            return Task.CompletedTask;
+            this.JobStatus = JobStatusType.Running;
+            await this.CheckForIdle(this.Person);
+            this.JobStartedTaskController.SetResult();
+            this.Person.ImMultitasking(this.JobName);
+            this.Person.LogToUI($"Morning - what's on the agenda today!", this.JobName);
+            this.Person.LogToUI("Breakfast first", this.JobName);
+            this.Person.ImIdle(this.JobName);
         }
 
     }

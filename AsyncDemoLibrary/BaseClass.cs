@@ -18,12 +18,12 @@ namespace AsyncDemoLibrary
             caller ??= this.CallerName;
             if (string.IsNullOrWhiteSpace(Thread.CurrentThread.Name))
                 Thread.CurrentThread.Name = $"{caller} Thread";
-            message = $"[{Thread.CurrentThread.Name}][{caller}] > {message}";
+            message = $"[{DateTime.Now.ToLongTimeString()}][{Thread.CurrentThread.Name}][{caller}] > {message}";
             UIMessenger?.Invoke(message);
         }
 
         public void WriteDirectToUI(string message) =>
-            UIMessenger?.Invoke(message);
+            UIMessenger?.Invoke($"[{DateTime.Now.ToLongTimeString()}] {message}");
 
         public void LogThreadType(string caller = null)
         {

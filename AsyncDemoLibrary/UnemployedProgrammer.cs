@@ -18,9 +18,11 @@ namespace AsyncDemoLibrary
     {
         public UnemployedProgrammer(PhoneMessengerService messenger, Action<string> uiLogger)
         {
+            this.ShoppingList = new ShoppingJob(uiLogger);
             this.MessengerService = messenger;
             this.UIMessenger = uiLogger;
             MessengerService.PingMessage += OnMessageReceived;
+            this.IdleTaskManager.SetResult();
         }
 
         #region Messenging Stuff
@@ -63,6 +65,8 @@ namespace AsyncDemoLibrary
 
         private StateType _State = StateType.Idle;
 
+        private bool LogStateChanges = false;
+
         public StateType State
         {
             get => this._State;
@@ -84,27 +88,27 @@ namespace AsyncDemoLibrary
                 switch (newstate)
                 {
                     case StateType.Busy:
-                        if (!BusyTaskSource.Task.IsCompleted)
+                        if (!BusyTaskManager.Task.IsCompleted)
                         {
-                            BusyTaskSource.SetResult();
-                            if (MultitaskingTaskSource.Task.IsCompleted) MultitaskingTaskSource = new TaskCompletionSource();
-                            if (IdleTaskSource.Task.IsCompleted) IdleTaskSource = new TaskCompletionSource();
+                            BusyTaskManager.SetResult();
+                            if (MultitaskingTaskManager.Task.IsCompleted) MultitaskingTaskManager = new TaskCompletionSource();
+                            if (IdleTaskManager.Task.IsCompleted) IdleTaskManager = new TaskCompletionSource();
                         }
                         break;
                     case StateType.Multitasking:
-                        if (!MultitaskingTaskSource.Task.IsCompleted)
+                        if (!MultitaskingTaskManager.Task.IsCompleted)
                         {
-                            MultitaskingTaskSource.SetResult();
-                            if (IdleTaskSource.Task.IsCompleted) IdleTaskSource = new TaskCompletionSource();
-                            if (BusyTaskSource.Task.IsCompleted) BusyTaskSource = new TaskCompletionSource();
+                            MultitaskingTaskManager.SetResult();
+                            if (IdleTaskManager.Task.IsCompleted) IdleTaskManager = new TaskCompletionSource();
+                            if (BusyTaskManager.Task.IsCompleted) BusyTaskManager = new TaskCompletionSource();
                         }
                         break;
                     default:
-                        if (!IdleTaskSource.Task.IsCompleted)
+                        if (!IdleTaskManager.Task.IsCompleted)
                         {
-                            IdleTaskSource.SetResult();
-                            if (MultitaskingTaskSource.Task.IsCompleted) MultitaskingTaskSource = new TaskCompletionSource();
-                            if (BusyTaskSource.Task.IsCompleted) BusyTaskSource = new TaskCompletionSource();
+                            IdleTaskManager.SetResult();
+                            if (MultitaskingTaskManager.Task.IsCompleted) MultitaskingTaskManager = new TaskCompletionSource();
+                            if (BusyTaskManager.Task.IsCompleted) BusyTaskManager = new TaskCompletionSource();
                         }
                         break;
                 }
@@ -115,9 +119,9 @@ namespace AsyncDemoLibrary
         {
             get
             {
-                if (BusyTaskSource.Task.IsCompleted && !this.IsBusy)
-                    BusyTaskSource = new TaskCompletionSource();
-                return BusyTaskSource.Task;
+                if (BusyTaskManager.Task.IsCompleted && !this.IsBusy)
+                    BusyTaskManager = new TaskCompletionSource();
+                return BusyTaskManager.Task;
             }
         }
 
@@ -125,9 +129,9 @@ namespace AsyncDemoLibrary
         {
             get
             {
-                if (IdleTaskSource.Task.IsCompleted && !this.IsIdle)
-                    IdleTaskSource = new TaskCompletionSource();
-                return IdleTaskSource.Task;
+                if (IdleTaskManager.Task.IsCompleted && !this.IsIdle)
+                    IdleTaskManager = new TaskCompletionSource();
+                return IdleTaskManager.Task;
             }
         }
 
@@ -135,9 +139,9 @@ namespace AsyncDemoLibrary
         {
             get
             {
-                if (MultitaskingTaskSource.Task.IsCompleted && !this.IsMultitasking)
-                    MultitaskingTaskSource = new TaskCompletionSource();
-                return MultitaskingTaskSource.Task;
+                if (MultitaskingTaskManager.Task.IsCompleted && !this.IsMultitasking)
+                    MultitaskingTaskManager = new TaskCompletionSource();
+                return MultitaskingTaskManager.Task;
             }
         }
 
@@ -147,28 +151,28 @@ namespace AsyncDemoLibrary
 
         public bool IsIdle => this.State == StateType.Idle;
 
-        private TaskCompletionSource IdleTaskSource = new TaskCompletionSource();
-        private TaskCompletionSource MultitaskingTaskSource = new TaskCompletionSource();
-        private TaskCompletionSource BusyTaskSource = new TaskCompletionSource();
+        private TaskCompletionSource IdleTaskManager = new TaskCompletionSource();
+        private TaskCompletionSource MultitaskingTaskManager = new TaskCompletionSource();
+        private TaskCompletionSource BusyTaskManager = new TaskCompletionSource();
 
         public void ImBusy(string message = null)
         {
             message = message ?? Message;
-            if (!string.IsNullOrWhiteSpace(message)) this.LogToUI($"Busy > {message}");
+            if (this.LogStateChanges && !string.IsNullOrWhiteSpace(message)) this.LogToUI($"Busy > {message}");
             this.State = StateType.Busy;
         }
 
         public void ImIdle(string message = null)
         {
             message = message ?? Message;
-            if (!string.IsNullOrWhiteSpace(message)) this.LogToUI($"Idle > {message}");
+            if (this.LogStateChanges && !string.IsNullOrWhiteSpace(message)) this.LogToUI($"Idle > {message}");
             this.State = StateType.Idle;
         }
 
         public void ImMultitasking(string message = null)
         {
             message = message ?? Message;
-            if (!string.IsNullOrWhiteSpace(message)) this.LogToUI($"Multitasking > {message}");
+            if (this.LogStateChanges && !string.IsNullOrWhiteSpace(message)) this.LogToUI($"Multitasking > {message}");
             this.State = StateType.Multitasking;
         }
 
@@ -176,117 +180,130 @@ namespace AsyncDemoLibrary
 
         #region Jobs Management Stuff
 
-        //public ShoppingJob ShoppingList { get; } = new ShoppingJob();
+        private int NewJobNo => _JobNo++;
 
-        private List<JobItem> JobQueue { get; } = new List<JobItem>();
+        private int _JobNo;
 
-        public void LoadNormalTask(Task task) => 
-            this.NormalJobs.Add(task);
+        public ShoppingJob ShoppingList { get; private set; }
 
-        public void LoadPriorityTask(Task task) =>
-             this.PriorityJobs.Add(task);
+        public StockList StockList { get; set; } = new StockList();
 
-        public void QueueJob(JobItem job, bool startnow = true)
+        private Queue<IJobItem> JobQueue { get; } = new Queue<IJobItem>();
+
+        public void QueueJob(IJobItem job, bool startnow = true)
         {
-            this.JobQueue.Add(job);
+            this.JobQueue.Enqueue(job);
             if (startnow)
                 LoadAndRunJobs();
         }
 
-        public void QueueJobs(List<JobItem> jobs)
+        public void QueueJobs(List<IJobItem> jobs)
         {
             foreach (var job in jobs)
-                this.JobQueue.Add(job);
+                this.JobQueue.Enqueue(job);
             LoadAndRunJobs();
         }
 
         private string Message { get; set; } = "On Task";
 
-        private List<Task> NormalJobs { get; } = new List<Task>();
+        private List<IJobItem> NormalJobs { get; } = new List<IJobItem>();
 
-        private List<Task> PriorityJobs { get; } = new List<Task>();
+        private List<IJobItem> PriorityJobs { get; } = new List<IJobItem>();
 
         public Task PriorityTasks =>
-            PriorityTasksCompletionSource != null ?
-            PriorityTasksCompletionSource.Task :
+            PriorityTasksController != null ?
+            PriorityTasksController.Task :
             Task.CompletedTask;
 
         public Task AllTasks =>
-            AllTasksCompletionSource != null ?
-            AllTasksCompletionSource.Task :
+            AllTasksController != null ?
+            AllTasksController.Task :
             Task.CompletedTask;
 
-        private TaskCompletionSource<bool> PriorityTasksCompletionSource { get; set; } = new TaskCompletionSource<bool>();
+        private TaskCompletionSource<bool> PriorityTasksController { get; set; } = new TaskCompletionSource<bool>();
 
-        private TaskCompletionSource<bool> AllTasksCompletionSource { get; set; } = new TaskCompletionSource<bool>();
+        private TaskCompletionSource<bool> AllTasksController { get; set; } = new TaskCompletionSource<bool>();
 
         private void LoadAndRunJobs()
         {
             ClearAllTaskLists();
-            if (JobQueue.Count > 0)
+            while (this.JobQueue.Count != 0)
             {
-                foreach (var job in JobQueue)
+                var job = this.JobQueue.Dequeue();
+                if (AllTasksController.Task.IsCompleted)
+                    AllTasksController = new TaskCompletionSource<bool>();
+                if (job.Priority == PriorityType.Priority)
                 {
-                    if (AllTasksCompletionSource.Task.IsCompleted)
-                        AllTasksCompletionSource = new TaskCompletionSource<bool>();
-                    if (job.Priority == PriorityType.Priority)
-                    {
-                        if (PriorityTasksCompletionSource.Task.IsCompleted)
-                            PriorityTasksCompletionSource = new TaskCompletionSource<bool>();
-                        var task = job.Job.Invoke(this);
-                        this.PriorityJobs.Add(task);
-                    }
-                    else
-                    {
-                        var task = job.Job.Invoke(this);
-                        this.NormalJobs.Add(task);
-                    }
+                    if (PriorityTasksController.Task.IsCompleted)
+                        PriorityTasksController = new TaskCompletionSource<bool>();
+                    job.RunJob(this, this.NewJobNo);
+                    this.PriorityJobs.Add(job);
                 }
-                JobQueue.Clear();
+                else
+                {
+                    job.RunJob(this, this.NewJobNo);
+                    this.NormalJobs.Add(job);
+                }
             }
         }
 
         public Task PriorityJobsMonitorAsync()
         {
-            ClearPriorityTaskList();
-            if (PriorityJobs.Count > 0)
-                return Task.WhenAll(PriorityJobs.ToArray());
-            else
-                return Task.CompletedTask;
-        }
-
-        public Task AllJobsMonitorAsync()
-        {
-            ClearAllTaskLists();
-            var jobs = new List<Task>();
-            {
-                jobs.AddRange(this.PriorityJobs);
-                jobs.AddRange(this.NormalJobs);
-            }
+            var jobs = this.GetPriorityStartedTasksList();
             if (jobs.Count > 0)
                 return Task.WhenAll(jobs.ToArray());
             else
                 return Task.CompletedTask;
         }
 
+        public Task AllJobsMonitorAsync()
+        {
+            var jobs = this.GetAllStartedTasksList();
+            if (jobs.Count > 0)
+                return Task.WhenAll(jobs.ToArray());
+            else
+                return Task.CompletedTask;
+        }
+
+        private List<Task> GetAllStartedTasksList()
+        {
+            this.ClearAllTaskLists();
+            var list = new List<Task>();
+            foreach (var item in PriorityJobs.Where(job => !job.JobTask.IsCompleted))
+                list.Add(item.JobTask);
+            foreach (var item in NormalJobs.Where(job => !job.JobTask.IsCompleted))
+                list.Add(item.JobTask);
+            return list;
+        }
+
+        private List<Task> GetPriorityStartedTasksList()
+        {
+            this.ClearPriorityTaskList();
+            var list = new List<Task>();
+            foreach (var item in PriorityJobs.Where(job => !job.JobTask.IsCompleted))
+                list.Add(item.JobTask);
+            return list;
+        }
+
         public void ClearAllTaskLists()
         {
             this.ClearPriorityTaskList();
-            var removelist = this.NormalJobs.Where(item => item.IsCompleted).ToList();
+            var removelist = this.NormalJobs.Where(item => item.JobTask.IsCompleted).ToList();
             removelist.ForEach(item => this.NormalJobs.Remove(item));
             if (this.NormalJobs.Count == 0)
-                this.AllTasksCompletionSource.SetResult(true);
+                if (!this.AllTasksController.Task.IsCompleted)
+                    this.AllTasksController.SetResult(true);
         }
 
         public void ClearPriorityTaskList()
         {
-            var removelist = this.PriorityJobs.Where(item => item.IsCompleted).ToList();
+            var removelist = this.PriorityJobs.Where(item => item.JobTask.IsCompleted).ToList();
             removelist.ForEach(item => this.PriorityJobs.Remove(item));
             if (this.PriorityJobs.Count == 0)
-                this.PriorityTasksCompletionSource.SetResult(true);
+                if (!this.PriorityTasksController.Task.IsCompleted)
+                    this.PriorityTasksController.SetResult(true);
         }
 
         #endregion
     }
 }
-

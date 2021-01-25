@@ -13,6 +13,11 @@ namespace AsyncDemoLibrary
     public class ShoppingJob : BaseClass, IEnumerable
     {
 
+        public ShoppingJob(Action<string> uiLogger)
+        {
+            this.UIMessenger = uiLogger;
+        }
+
         public Task ShoppingTask
         {
             get
