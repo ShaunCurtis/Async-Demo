@@ -18,7 +18,7 @@ namespace AsyncDemoLibrary
     {
         public UnemployedProgrammer(PhoneMessengerService messenger, Action<string> uiLogger)
         {
-            this.ShoppingList = new ShoppingJob(uiLogger);
+            this.ShoppingList = new ShoppingList(uiLogger);
             this.MessengerService = messenger;
             this.UIMessenger = uiLogger;
             MessengerService.PingMessage += OnMessageReceived;
@@ -184,7 +184,7 @@ namespace AsyncDemoLibrary
 
         private int _JobNo;
 
-        public ShoppingJob ShoppingList { get; private set; }
+        public ShoppingList ShoppingList { get; private set; }
 
         public StockList StockList { get; set; } = new StockList();
 

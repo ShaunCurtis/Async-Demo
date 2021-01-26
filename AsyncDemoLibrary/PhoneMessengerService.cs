@@ -52,15 +52,15 @@ namespace AsyncDemoLibrary
             {
                 this.Running = true;
                 this.LogThreadType("Messenger");
-                var firsttrip = true;
                 do
                 {
                     await Task.Delay(3000);
-                    if (firsttrip) this.LogThreadType();
-                    var subscriberscount = PingMessage.GetInvocationList()?.Length ?? 0;
-                    var subscribers = PingMessage.GetInvocationList();
-                    PingMessage?.Invoke($"Hey, stuff going on at {DateTime.Now.ToLongTimeString()}!", EventArgs.Empty);
-                    firsttrip = false;
+                    if (PingMessage != null)
+                    {
+                        var subscriberscount = PingMessage.GetInvocationList()?.Length ?? 0;
+                        var subscribers = PingMessage.GetInvocationList();
+                        PingMessage?.Invoke($"Hey, stuff going on at {DateTime.Now.ToLongTimeString()}!", EventArgs.Empty);
+                    }
                 } while (_Live);
                 this.Running = false;
             }

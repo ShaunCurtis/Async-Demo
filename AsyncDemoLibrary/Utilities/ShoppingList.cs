@@ -10,10 +10,10 @@ using System.Threading.Tasks;
 
 namespace AsyncDemoLibrary
 {
-    public class ShoppingJob : BaseClass, IEnumerable
+    public class ShoppingList : BaseClass, IEnumerable
     {
 
-        public ShoppingJob(Action<string> uiLogger)
+        public ShoppingList(Action<string> uiLogger)
         {
             this.UIMessenger = uiLogger;
         }
