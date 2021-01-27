@@ -8,19 +8,17 @@ You'll need a DotNetCore compatible development environment, normally either eit
 
 ## Code Repository
 
-The code in available in a GitHub Repo [here](https://github.com/ShaunCurtis/Async-Demo).  The code for this project is in *Async-Demo*. *AsyncDemoLibrary* contains some core library files we use.  *AsyncChores* is the working project for the next article in this series.
+The code in available in a GitHub Repo [here](https://github.com/ShaunCurtis/Async-Demo).  The code for this project is in *Async-Demo*.  Ignore any other projects - they are for a further Async Programming article.
 
 ## Library Classes
 
-Before we start I need to introduce the `LongRunningTasks` class.
+Before we start your need to be aware of two helper classses
 
-It contains code for emulating work.
-
-1. `RunLongProcessorTaskAsync` and `RunLongProcessorTask` use prime number calculations to emulate a processor heavy task.
-2. `RunYieldingLongProcessorTaskAsync` is a version that yields every 100 calculations.
-3. `RunLongIOTaskAsync` uses `Task.Delay` to emulate a slow I/O operations.
-
-> The rest of the library files are part of the next article.
+1. `LongRunningTasks` - emulates work.
+   1. `RunLongProcessorTaskAsync` and `RunLongProcessorTask` use prime number calculations to emulate a processor heavy task.
+   2. `RunYieldingLongProcessorTaskAsync` is a version that yields every 100 calculations.
+   3. `RunLongIOTaskAsync` uses `Task.Delay` to emulate a slow I/O operations.
+4. `UILogger` provides an abstraction layer for logging information to the UI.  You pass a delegate `Action` to the methods.  `UILogger` builds the message, and then calls the `Action` to actually write it to wherever the `Action` is configured to write to. In our case `LogToConsole` in `Program`,  which runs `Console.WriteLine`.  It could just as easily write to a text file.
 
 ## Getting Started
 
